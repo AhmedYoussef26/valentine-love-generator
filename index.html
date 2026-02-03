@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>For You ❤️</title>
+  <style>
+    :root{
+      --bg1:#ff5a88; --bg2:#ff94b8; --card:rgba(255,255,255,.10);
+      --border:rgba(255,255,255,.18); --txt:#fff;
+    }
+    body{
+      margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+      font-family: Arial,system-ui,sans-serif; color:var(--txt);
+      background: radial-gradient(1200px 700px at 15% 20%, var(--bg2), transparent 55%),
+                  radial-gradient(1200px 700px at 85% 80%, var(--bg1), transparent 55%),
+                  #0b1020;
+      padding:22px;
+    }
+    .wrap{width:min(860px,92vw)}
+    .card{
+      background:var(--card); border:1px solid var(--border);
+      border-radius:20px; padding:26px; box-shadow:0 20px 80px rgba(0,0,0,.35);
+      text-align:center;
+    }
+    h1{margin:0 0 8px;font-size:34px;letter-spacing:.2px}
+    .sub{opacity:.9;margin:0 0 18px}
+    .msg{font-size:18px;line-height:1.7;background:rgba(0,0,0,.18);border:1px solid var(--border);padding:16px;border-radius:16px}
+    .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;justify-content:center}
+    button{
+      border:0;border-radius:999px;padding:12px 16px;font-weight:900;cursor:pointer;
+      background:rgba(255,255,255,.92); color:#ff2f6d;
+    }
+    .ghost{background:transparent;color:var(--txt);border:1px solid var(--border)}
+    .hidden{display:none}
+    .mini{font-size:13px;opacity:.85;margin-top:10px;line-height:1.6}
+    .pill{display:inline-block;margin-top:10px;padding:10px 14px;border:1px solid var(--border);border-radius:999px;background:rgba(0,0,0,.18)}
+    /* Memory reveal */
+    .memoryBox{
+      margin-top:16px; background:rgba(0,0,0,.18); border:1px solid var(--border);
+      padding:14px; border-radius:18px;
+    }
+    .memoryImg{
+      width:100%; max-height:420px; object-fit:cover; border-radius:14px;
+      border:1px solid rgba(255,255,255,.18);
+      opacity:0; transform:translateY(6px);
+      transition:opacity .35s ease, transform .35s ease;
+    }
+    .memoryImg.show{opacity:1; transform:translateY(0)}
+    .cap{margin:12px 6px 0; font-size:16px; line-height:1.5; opacity:.95}
+    .counter{margin-top:10px; font-size:13px; opacity:.85}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1 id="toName">For You ❤️</h1>
+      <p class="sub" id="fromLine"></p>
+
+      <div class="msg" id="msgBox"></div>
+
+      <div class="btns">
+        <button id="surpriseBtn">Tap for a surprise</button>
+        <button class="ghost" id="copyBtn">Copy this page link</button>
+      </div>
+
+      <div id="surpriseArea" class="hidden">
+        <div id="memoryBox" class="memoryBox hidden">
+          <img id="memoryImg" class="memoryImg" alt="Memory" />
+          <div id="cap" class="cap"></div>
+          <div id="counter" class="counter"></div>
+          <div class="btns" style="margin-top:14px">
+            <button id="nextBtn">Next 💗</button>
+          </div>
+        </div>
+
+        <div id="ending" class="pill hidden"></div>
+        <div id="tip" class="mini"></div>
+      </div>
+
+      <div class="mini" id="fallback" style="margin-top:14px"></div>
+    </div>
+  </div>
+
+  <script>
+    function b64urlDecodeToStr(b64url){
+      let b64 = b64url.replaceAll('-','+').replaceAll('_','/');
+      const pad = b64.length % 4;
+      if(pad) b64 += '='.repeat(4 - pad);
+      return decodeURIComponent(escape(atob(b64)));
+    }
+
+    function applyTheme(theme){
+      const root = document.documentElement;
+      if(theme === "midnight"){
+        root.style.setProperty('--bg1','#6b5bff');
+        root.style.setProperty('--bg2','#00d4ff');
+        root.style.setProperty('--card','rgba(255,255,255,.08)');
+      } else if(theme === "sunset"){
+        root.style.setProperty('--bg1','#ff7a18');
+        root.style.setProperty('--bg2','#ff3f8e');
+        root.style.setProperty('--card','rgba(255,255,255,.10)');
+      } else {
+        root.style.setProperty('--bg1','#ff5a88');
+        root.style.setProperty('--bg2','#ff94b8');
+        root.style.setProperty('--card','rgba(255,255,255,.10)');
+      }
+    }
+
+    function safeText(s, max=800){
+      if(!s) return "";
+      s = String(s).slice(0,max);
+      return s.replaceAll('<','').replaceAll('>','');
+    }
+
+    function parsePayload(){
+      const hash = new URL(window.location.href).hash || "";
+      const m = hash.match(/#d=([A-Za-z0-9\-_]+)/);
+      if(!m) return null;
+      try{
+        const json = b64urlDecodeToStr(m[1]);
+        return JSON.parse(json);
+      }catch{
+        return null;
+      }
+    }
+
+    const data = parsePayload();
+
+    const toNameEl = document.getElementById("toName");
+    const fromLineEl = document.getElementById("fromLine");
+    const msgBoxEl = document.getElementById("msgBox");
+    const fallbackEl = document.getElementById("fallback");
+
+    const surpriseBtn = document.getElementById("surpriseBtn");
+    const surpriseArea = document.getElementById("surpriseArea");
+
+    const memoryBox = document.getElementById("memoryBox");
+    const memoryImg = document.getElementById("memoryImg");
+    const capEl = document.getElementById("cap");
+    const counterEl = document.getElementById("counter");
+    const nextBtn = document.getElementById("nextBtn");
+    const endingEl = document.getElementById("ending");
+    const tipEl = document.getElementById("tip");
+
+    if(!data){
+      toNameEl.textContent = "Love Page ❤️";
+      fromLineEl.textContent = "";
+      msgBoxEl.textContent = "This page was created with a Love Page Generator.";
+      fallbackEl.textContent = "If you expected a personalized message, ask for the correct link.";
+      surpriseBtn.disabled = true;
+    } else {
+      const toName = safeText(data.toName, 60) || "You";
+      const fromName = safeText(data.fromName, 60);
+      const msg = safeText(data.msg, 1200);
+      const theme = safeText(data.theme, 30) || "rose";
+      const endingLine = safeText(data.endingLine, 160) || "These are just a few of my favorite moments with you 💌";
+      const memories = Array.isArray(data.memories) ? data.memories.slice(0,4) : [];
+
+      applyTheme(theme);
+
+      toNameEl.textContent = toName + " ❤️";
+      fromLineEl.textContent = fromName ? ("From " + fromName) : "";
+      msgBoxEl.textContent = msg;
+
+      // Reveal logic (one-by-one)
+      let idx = 0;
+
+      function showMemory(i){
+        const m = memories[i];
+        if(!m || !m.img){
+          return false;
+        }
+        memoryImg.classList.remove("show");
+        // update content
+        memoryImg.src = m.img;
+        capEl.textContent = safeText(m.text || "", 200);
+        counterEl.textContent = `${i+1} / ${memories.length}`;
+
+        // re-animate
+        setTimeout(()=>memoryImg.classList.add("show"), 50);
+        return true;
+      }
+
+      function finish(){
+        memoryBox.classList.add("hidden");
+        endingEl.textContent = endingLine;
+        endingEl.classList.remove("hidden");
+        tipEl.textContent = "";
+      }
+
+      surpriseBtn.addEventListener("click", ()=>{
+        surpriseArea.classList.remove("hidden");
+
+        if(memories.length){
+          memoryBox.classList.remove("hidden");
+          endingEl.classList.add("hidden");
+          idx = 0;
+          showMemory(idx);
+          tipEl.textContent = "Tap Next to continue 💗";
+          nextBtn.style.display = "inline-block";
+        } else {
+          // No photos
+          memoryBox.classList.add("hidden");
+          endingEl.textContent = endingLine;
+          endingEl.classList.remove("hidden");
+          tipEl.textContent = "";
+        }
+      });
+
+      nextBtn.addEventListener("click", ()=>{
+        idx++;
+        if(idx < memories.length){
+          showMemory(idx);
+        } else {
+          finish();
+        }
+      });
+
+      // If only 1 memory, Next ends after first
+      if(memories.length === 1){
+        // still show counter 1/1, next ends
+      }
+    }
+
+    // Copy link
+    document.getElementById("copyBtn").addEventListener("click", async ()=>{
+      try{
+        await navigator.clipboard.writeText(window.location.href);
+        alert("Link copied!");
+      }catch{
+        alert("Copy failed. You can copy the URL manually.");
+      }
+    });
+  </script>
+</body>
+</html>
