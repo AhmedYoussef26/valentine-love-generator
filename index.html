@@ -35,13 +35,18 @@
     .hidden{display:none}
     .mini{font-size:13px;opacity:.85;margin-top:10px;line-height:1.6}
     .pill{display:inline-block;margin-top:10px;padding:10px 14px;border:1px solid var(--border);border-radius:999px;background:rgba(0,0,0,.18)}
+
     /* Memory reveal */
     .memoryBox{
       margin-top:16px; background:rgba(0,0,0,.18); border:1px solid var(--border);
       padding:14px; border-radius:18px;
     }
     .memoryImg{
-      width:100%; max-height:420px; object-fit:cover; border-radius:14px;
+      width:100%;
+      max-height:560px;
+      object-fit:contain;            /* ✅ no cropping */
+      background: rgba(0,0,0,.18);   /* nice padding space */
+      border-radius:14px;
       border:1px solid rgba(255,255,255,.18);
       opacity:0; transform:translateY(6px);
       transition:opacity .35s ease, transform .35s ease;
@@ -54,10 +59,10 @@
 <body>
   <div class="wrap">
     <div class="card">
-      <h1 id="toName">For You ❤️</h1>
+      <h1 id="toName">Love Page ❤️</h1>
       <p class="sub" id="fromLine"></p>
 
-      <div class="msg" id="msgBox"></div>
+      <div class="msg" id="msgBox">This page is waiting for a special message 💌</div>
 
       <div class="btns">
         <button id="surpriseBtn">Tap for a surprise</button>
@@ -107,7 +112,7 @@
       }
     }
 
-    function safeText(s, max=800){
+    function safeText(s, max=1200){
       if(!s) return "";
       s = String(s).slice(0,max);
       return s.replaceAll('<','').replaceAll('>','');
@@ -134,7 +139,6 @@
 
     const surpriseBtn = document.getElementById("surpriseBtn");
     const surpriseArea = document.getElementById("surpriseArea");
-
     const memoryBox = document.getElementById("memoryBox");
     const memoryImg = document.getElementById("memoryImg");
     const capEl = document.getElementById("cap");
@@ -144,11 +148,10 @@
     const tipEl = document.getElementById("tip");
 
     if(!data){
-      toNameEl.textContent = "Love Page ❤️";
-      fromLineEl.textContent = "";
-      msgBoxEl.textContent = "This page was created with a Love Page Generator.";
+      // Default landing (no payload)
+      msgBoxEl.textContent = "This page was created with a Love Page Generator. Create yours using the generator link.";
       fallbackEl.textContent = "If you expected a personalized message, ask for the correct link.";
-      surpriseBtn.disabled = true;
+      // Keep surprise enabled but it won't show memories
     } else {
       const toName = safeText(data.toName, 60) || "You";
       const fromName = safeText(data.fromName, 60);
@@ -158,26 +161,26 @@
       const memories = Array.isArray(data.memories) ? data.memories.slice(0,4) : [];
 
       applyTheme(theme);
-
       toNameEl.textContent = toName + " ❤️";
       fromLineEl.textContent = fromName ? ("From " + fromName) : "";
       msgBoxEl.textContent = msg;
 
-      // Reveal logic (one-by-one)
       let idx = 0;
 
       function showMemory(i){
         const m = memories[i];
-        if(!m || !m.img){
-          return false;
-        }
+        if(!m || !m.url) return false;
+
         memoryImg.classList.remove("show");
-        // update content
-        memoryImg.src = m.img;
+
+        // Use CDN transform to control size (Uploadcare supports this)
+        // Adds: -/resize/1400x/ to keep it sharp but fast
+        const url = String(m.url).includes("/-/") ? m.url : (m.url.replace(/\/$/, "") + "/-/resize/1400x/");
+
+        memoryImg.src = url;
         capEl.textContent = safeText(m.text || "", 200);
         counterEl.textContent = `${i+1} / ${memories.length}`;
 
-        // re-animate
         setTimeout(()=>memoryImg.classList.add("show"), 50);
         return true;
       }
@@ -200,7 +203,6 @@
           tipEl.textContent = "Tap Next to continue 💗";
           nextBtn.style.display = "inline-block";
         } else {
-          // No photos
           memoryBox.classList.add("hidden");
           endingEl.textContent = endingLine;
           endingEl.classList.remove("hidden");
@@ -216,11 +218,6 @@
           finish();
         }
       });
-
-      // If only 1 memory, Next ends after first
-      if(memories.length === 1){
-        // still show counter 1/1, next ends
-      }
     }
 
     // Copy link
